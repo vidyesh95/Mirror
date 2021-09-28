@@ -2,23 +2,39 @@ package com.astralai.mirror
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Surface
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+/*import androidx.compose.ui.tooling.preview.Preview*/
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.astralai.mirror.databinding.ActivityMainBinding
+import com.astralai.mirror.ui.theme.MirrorTheme
 import java.io.File
 import java.nio.ByteBuffer
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-typealias LumaListener = (luma: Double) -> Unit
+/*typealias LumaListener = (luma: Double) -> Unit*/
 
+/*
 class MainActivity : AppCompatActivity() {
 
     private var imageCapture: ImageCapture? = null
@@ -55,9 +71,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Set up the listener for take photo button
-        /*binding.cameraCaptureButton.setOnClickListener {
+        */
+/*binding.cameraCaptureButton.setOnClickListener {
             takePhoto()
-        }*/
+        }*//*
+
 
         outputDirectory = getOutputDirectory()
 
@@ -69,7 +87,8 @@ class MainActivity : AppCompatActivity() {
         ContextCompat.checkSelfPermission(baseContext, it) == PackageManager.PERMISSION_GRANTED
     }
 
-    /*override fun onWindowFocusChanged(hasFocus: Boolean) {
+    */
+/*override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) hideSystemUI()
     }
@@ -94,7 +113,8 @@ class MainActivity : AppCompatActivity() {
                     or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                     or View.SYSTEM_UI_FLAG_FULLSCREEN)
         }
-    }*/
+    }*//*
+
 
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
@@ -135,7 +155,8 @@ class MainActivity : AppCompatActivity() {
         }, ContextCompat.getMainExecutor(this))
     }
 
-    /*private fun takePhoto() {
+    */
+/*private fun takePhoto() {
         // Make a stable reference of the modifiable image capture use case
         val imageCapture = imageCapture ?: return
 
@@ -167,7 +188,8 @@ class MainActivity : AppCompatActivity() {
                     Log.d(TAG, message)
                 }
             })
-    }*/
+    }*//*
+
 
     private class LuminosityAnalyzer(private val listener: LumaListener) :
         ImageAnalysis.Analyzer {
@@ -235,3 +257,67 @@ class MainActivity : AppCompatActivity() {
         cameraExecutor.shutdown()
     }
 }
+*/
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            MyApp()
+        }
+    }
+}
+
+@Composable
+fun MyApp() {
+    MirrorTheme() {
+        // A surface container using the 'background' color from the theme
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colors.background
+        ) {
+            SimpleCameraPreview()
+        }
+    }
+}
+
+@Composable
+fun SimpleCameraPreview() {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val context = LocalContext.current
+    val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
+
+    AndroidView(
+        factory = { ctx ->
+            val previewView = PreviewView(ctx)
+            val executor = ContextCompat.getMainExecutor(ctx)
+            cameraProviderFuture.addListener({
+                val cameraProvider = cameraProviderFuture.get()
+                val preview = Preview.Builder().build().also {
+                    it.setSurfaceProvider(previewView.surfaceProvider)
+                }
+
+                val cameraSelector = CameraSelector.Builder()
+                    .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
+                    .build()
+
+                cameraProvider.unbindAll()
+                cameraProvider.bindToLifecycle(
+                    lifecycleOwner,
+                    cameraSelector,
+                    preview
+                )
+            }, executor)
+            previewView
+        },
+        modifier = Modifier.fillMaxSize(),
+    )
+}
+
+/*
+@Preview(showBackground = true, name = "Light Mode")
+@Preview(showBackground = true, name = "Night Mode", uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+fun DefaultPreview() {
+    MyApp()
+}*/
